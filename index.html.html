@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animated Chess Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: 300;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .status {
+            font-size: 1.2em;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .current-turn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.9em;
+        }
+
+        .current-turn.white {
+            background: #ecf0f1;
+            color: #2c3e50;
+            border: 2px solid #bdc3c7;
+        }
+
+        .current-turn.black {
+            background: #2c3e50;
+            color: #ecf0f1;
+            border: 2px solid #34495e;
+        }
+
+        .chess-board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            width: 560px;
+            height: 560px;
+            border: 3px solid #2c3e50;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .square {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .square.light {
+            background-color: #f0d9b5;
+        }
+
+        .square.dark {
+            background-color: #b58863;
+        }
+
+        .square.selected {
+            background-color: #a7c5eb !important;
+            transform: scale(1.05);
+            z-index: 2;
+            box-shadow: 0 0 15px rgba(52, 152, 219, 0.5);
+        }
+
+        .square.valid-move::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: rgba(46, 204, 113, 0.3);
+            border-radius: 50%;
+            border: 2px solid #2ecc71;
+        }
+
+        .square.capture-valid::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(231, 76, 60, 0.2);
+            border: 2px solid #e74c3c;
+            border-radius: 50%;
+        }
+
+        .piece {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+        }
+
+        .piece.moving {
+            z-index: 10;
+            animation: movePiece 0.5s ease-in-out;
+        }
+
+        @keyframes movePiece {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .capture-animation {
+            animation: capturePiece 0.3s ease-out;
+        }
+
+        @keyframes capturePiece {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.7; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .coordinates {
+            position: absolute;
+            font-size: 12px;
+            color: rgba(0, 0, 0, 0.6);
+            pointer-events: none;
+        }
+
+        .coordinate-file {
+            bottom: 2px;
+            right: 4px;
+        }
+
+        .coordinate-rank {
+            top: 2px;
+            left: 4px;
+        }
+
+        @media (max-width: 600px) {
+            .chess-board {
+                width: 320px;
+                height: 320px;
+            }
+            
+            .square {
+                font-size: 24px;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>♔ Chess Master ♚</h1>
+        
+        <div class="game-info">
+            <div class="status">Game in progress</div>
+            <div class="current-turn white">White's turn</div>
+        </div>
+
+        <div class="chess-board" id="chessBoard"></div>
+
+        <div class="controls">
+            <button id="resetBtn">New Game</button>
+            <button id="hintBtn">Show Hints</button>
+        </div>
+    </div>
+
+    <script>
+        class ChessGame {
+            constructor() {
+                this.board = document.getElementById('chessBoard');
+                this.statusElement = document.querySelector('.status');
+                this.turnElement = document.querySelector('.current-turn');
+                this.resetBtn = document.getElementById('resetBtn');
+                this.hintBtn = document.getElementById('hintBtn');
+                
+                this.currentPlayer = 'white';
+                this.selectedPiece = null;
+                this.validMoves = [];
+                this.showingHints = false;
+                this.boardState = this.initializeBoard();
+                
+                this.init();
+            }
+
+            initializeBoard() {
+                return [
+                    ['br', 'bn', 'bb', 'bq', 'bk', 'bb', 'bn', 'br'],
+                    ['bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp'],
+                    ['', '', '', '', '', '', '', ''],
+                    ['', '', '', '', '', '', '', ''],
+                    ['', '', '', '', '', '', '', ''],
+                    ['', '', '', '', '', '', '', ''],
+                    ['wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp'],
+                    ['wr', 'wn', 'wb', 'wq', 'wk', 'wb', 'wn', 'wr']
+                ];
+            }
+
+            init() {
+                this.createBoard();
+                this.setupEventListeners();
+                this.updateGameStatus();
+            }
+
+            createBoard() {
+                this.board.innerHTML = '';
+                const files = 'abcdefgh';
+                const ranks = '87654321';
+
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        const square = document.createElement('div');
+                        const isLight = (row + col) % 2 === 0;
+                        
+                        square.className = `square ${isLight ? 'light' : 'dark'}`;
+                        square.dataset.row = row;
+                        square.dataset.col = col;
+                        
+                        // Add coordinates
+                        if (row === 7) {
+                            const fileCoord = document.createElement('div');
+                            fileCoord.className = 'coordinates coordinate-file';
+                            fileCoord.textContent = files[col];
+                            square.appendChild(fileCoord);
+                        }
+                        
+                        if (col === 0) {
+                            const rankCoord = document.createElement('div');
+                            rankCoord.className = 'coordinates coordinate-rank';
+                            rankCoord.textContent = ranks[row];
+                            square.appendChild(rankCoord);
+                        }
+
+                        // Add piece if exists
+                        const piece = this.boardState[row][col];
+                        if (piece) {
+                            const pieceElement = document.createElement('div');
+                            pieceElement.className = 'piece';
+                            pieceElement.textContent = this.getPieceSymbol(piece);
+                            pieceElement.dataset.piece = piece;
+                            square.appendChild(pieceElement);
+                        }
+
+                        this.board.appendChild(square);
+                    }
+                }
+            }
+
+            getPieceSymbol(pieceCode) {
+                const symbols = {
+                    'wp': '♙', 'wr': '♖', 'wn': '♘', 'wb': '♗', 'wq': '♕', 'wk': '♔',
+                    'bp': '♟', 'br': '♜', 'bn': '♞', 'bb': '♝', 'bq': '♛', 'bk': '♚'
+                };
+                return symbols[pieceCode];
+            }
+
+            setupEventListeners() {
+                this.board.addEventListener('click', (e) => {
+                    const square = e.target.closest('.square');
+                    if (!square) return;
+
+                    const row = parseInt(square.dataset.row);
+                    const col = parseInt(square.dataset.col);
+                    
+                    this.handleSquareClick(row, col);
+                });
+
+                this.resetBtn.addEventListener('click', () => this.resetGame());
+                this.hintBtn.addEventListener('click', () => this.toggleHints());
+            }
+
+            handleSquareClick(row, col) {
+                const piece = this.boardState[row][col];
+                
+                // If no piece selected and clicked on own piece
+                if (!this.selectedPiece && piece && piece[0] === this.currentPlayer[0]) {
+                    this.selectPiece(row, col);
+                    return;
+                }
+
+                // If piece is selected and clicked on valid move
+                if (this.selectedPiece) {
+                    const isValidMove = this.validMoves.some(move => 
+                        move.row === row && move.col === col
+                    );
+
+                    if (isValidMove) {
+                        this.movePiece(this.selectedPiece.row, this.selectedPiece.col, row, col);
+                    } else {
+                        this.clearSelection();
+                        if (piece && piece[0] === this.currentPlayer[0]) {
+                            this.selectPiece(row, col);
+                        }
+                    }
+                }
+            }
+
+            selectPiece(row, col) {
+                this.clearSelection();
+                
+                this.selectedPiece = { row, col, type: this.boardState[row][col] };
+                const square = this.getSquareElement(row, col);
+                square.classList.add('selected');
+                
+                this.validMoves = this.getValidMoves(row, col);
+                this.showValidMoves();
+            }
+
+            getValidMoves(row, col) {
+                const piece = this.boardState[row][col];
+                const moves = [];
+                const pieceType = piece[1];
+                const color = piece[0];
+
+                // Simple move logic for demonstration
+                switch (pieceType) {
+                    case 'p': // Pawn
+                        const direction = color === 'w' ? -1 : 1;
+                        // Move forward
+                        if (this.isValidPosition(row + direction, col) && !this.boardState[row + direction][col]) {
+                            moves.push({ row: row + direction, col: col });
+                            // Double move from starting position
+                            if ((color === 'w' && row === 6) || (color === 'b' && row === 1)) {
+                                if (!this.boardState[row + 2 * direction][col]) {
+                                    moves.push({ row: row + 2 * direction, col: col });
+                                }
+                            }
+                        }
+                        // Captures
+                        [-1, 1].forEach(offset => {
+                            if (this.isValidPosition(row + direction, col + offset)) {
+                                const target = this.boardState[row + direction][col + offset];
+                                if (target && target[0] !== color) {
+                                    moves.push({ row: row + direction, col: col + offset, capture: true });
+                                }
+                            }
+                        });
+                        break;
+
+                    case 'r': // Rook
+                        this.addLinearMoves(row, col, moves, color, [[1,0], [-1,0], [0,1], [0,-1]]);
+                        break;
+
+                    case 'n': // Knight
+                        const knightMoves = [[2,1], [2,-1], [-2,1], [-2,-1], [1,2], [1,-2], [-1,2], [-1,-2]];
+                        knightMoves.forEach(([dr, dc]) => {
+                            const newRow = row + dr;
+                            const newCol = col + dc;
+                            if (this.isValidPosition(newRow, newCol)) {
+                                const target = this.boardState[newRow][newCol];
+                                if (!target || target[0] !== color) {
+                                    moves.push({ row: newRow, col: newCol, capture: !!target });
+                                }
+                            }
+                        });
+                        break;
+
+                    case 'b': // Bishop
+                        this.addLinearMoves(row, col, moves, color, [[1,1], [1,-1], [-1,1], [-1,-1]]);
+                        break;
+
+                    case 'q': // Queen
+                        this.addLinearMoves(row, col, moves, color, 
+                            [[1,0], [-1,0], [0,1], [0,-1], [1,1], [1,-1], [-1,1], [-1,-1]]
+                        );
+                        break;
+
+                    case 'k': // King
+                        for (let dr = -1; dr <= 1; dr++) {
+                            for (let dc = -1; dc <= 1; dc++) {
+                                if (dr === 0 && dc === 0) continue;
+                                const newRow = row + dr;
+                                const newCol = col + dc;
+                                if (this.isValidPosition(newRow, newCol)) {
+                                    const target = this.boardState[newRow][newCol];
+                                    if (!target || target[0] !== color) {
+                                        moves.push({ row: newRow, col: newCol, capture: !!target });
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                }
+
+                return moves;
+            }
+
+            addLinearMoves(row, col, moves, color, directions) {
+                directions.forEach(([dr, dc]) => {
+                    for (let i = 1; i < 8; i++) {
+                        const newRow = row + i * dr;
+                        const newCol = col + i * dc;
+                        
+                        if (!this.isValidPosition(newRow, newCol)) break;
+                        
+                        const target = this.boardState[newRow][newCol];
+                        if (!target) {
+                            moves.push({ row: newRow, col: newCol });
+                        } else {
+                            if (target[0] !== color) {
+                                moves.push({ row: newRow, col: newCol, capture: true });
+                            }
+                            break;
+                        }
+                    }
+                });
+            }
+
+            isValidPosition(row, col) {
+                return row >= 0 && row < 8 && col >= 0 && col < 8;
+            }
+
+            showValidMoves() {
+                this.validMoves.forEach(move => {
+                    const square = this.getSquareElement(move.row, move.col);
+                    square.classList.add(move.capture ? 'capture-valid' : 'valid-move');
+                });
+            }
+
+            movePiece(fromRow, fromCol, toRow, toCol) {
+                const piece = this.boardState[fromRow][fromCol];
+                const targetPiece = this.boardState[toRow][toCol];
+                
+                // Animation for capture
+                if (targetPiece) {
+                    const targetSquare = this.getSquareElement(toRow, toCol);
+                    const targetPieceElement = targetSquare.querySelector('.piece');
+                    if (targetPieceElement) {
+                        targetPieceElement.classList.add('capture-animation');
+                        setTimeout(() => {
+                            targetSquare.removeChild(targetPieceElement);
+                        }, 300);
+                    }
+                }
+
+                // Update board state
+                this.boardState[toRow][toCol] = piece;
+                this.boardState[fromRow][fromCol] = '';
+
+                // Animate piece movement
+                const fromSquare = this.getSquareElement(fromRow, fromCol);
+                const toSquare = this.getSquareElement(toRow, toCol);
+                const pieceElement = fromSquare.querySelector('.piece');
+                
+                if (pieceElement) {
+                    pieceElement.classList.add('moving');
+                    setTimeout(() => {
+                        toSquare.appendChild(pieceElement);
+                        pieceElement.classList.remove('moving');
+                    }, 200);
+                }
+
+                // Switch player
+                this.currentPlayer = this.currentPlayer === 'white' ? 'black' : 'white';
+                
+                // Pawn promotion check (simple implementation)
+                if (piece[1] === 'p' && (toRow === 0 || toRow === 7)) {
+                    this.boardState[toRow][toCol] = piece[0] + 'q'; // Promote to queen
+                }
+
+                setTimeout(() => {
+                    this.clearSelection();
+                    this.updateGameStatus();
+                    this.checkGameEnd();
+                }, 300);
+            }
+
+            clearSelection() {
+                document.querySelectorAll('.square.selected, .square.valid-move, .square.capture-valid')
+                    .forEach(el => {
+                        el.classList.remove('selected', 'valid-move', 'capture-valid');
+                    });
+                this.selectedPiece = null;
+                this.validMoves = [];
+            }
+
+            updateGameStatus() {
+                this.turnElement.textContent = `${this.currentPlayer}'s turn`;
+                this.turnElement.className = `current-turn ${this.currentPlayer}`;
+            }
+
+            checkGameEnd() {
+                // Simple check for king capture (for demo purposes)
+                let whiteKing = false;
+                let blackKing = false;
+                
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        if (this.boardState[row][col] === 'wk') whiteKing = true;
+                        if (this.boardState[row][col] === 'bk') blackKing = true;
+                    }
+                }
+                
+                if (!whiteKing) {
+                    this.statusElement.textContent = 'Black wins by checkmate!';
+                    this.endGame();
+                } else if (!blackKing) {
+                    this.statusElement.textContent = 'White wins by checkmate!';
+                    this.endGame();
+                }
+            }
+
+            endGame() {
+                this.board.style.opacity = '0.7';
+                this.board.style.pointerEvents = 'none';
+            }
+
+            resetGame() {
+                this.boardState = this.initializeBoard();
+                this.currentPlayer = 'white';
+                this.selectedPiece = null;
+                this.validMoves = [];
+                this.showingHints = false;
+                
+                this.createBoard();
+                this.updateGameStatus();
+                this.board.style.opacity = '1';
+                this.board.style.pointerEvents = 'auto';
+                this.statusElement.textContent = 'Game in progress';
+            }
+
+            toggleHints() {
+                this.showingHints = !this.showingHints;
+                this.hintBtn.textContent = this.showingHints ? 'Hide Hints' : 'Show Hints';
+                
+                if (!this.showingHints) {
+                    this.clearSelection();
+                }
+            }
+
+            getSquareElement(row, col) {
+                return document.querySelector(`.square[data-row="${row}"][data-col="${col}"]`);
+            }
+        }
+
+        // Initialize the game when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new ChessGame();
+        });
+    </script>
+</body>
+</html>
+
